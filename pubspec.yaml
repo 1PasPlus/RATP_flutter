@@ -33,6 +33,7 @@ dependencies:
   http: any
   html: ^0.15.0
   fl_chart: ^0.35.0
+  syncfusion_flutter_maps: ^20.4.38
 
 
 

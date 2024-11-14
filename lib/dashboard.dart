@@ -3,11 +3,13 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
 import 'package:charts_flutter/flutter.dart' as charts;
 import 'dashboard_tile.dart';
 import 'disrupted_lines_tile.dart';
 import 'transport_disruption_pie_chart.dart';
-import 'disruptions_bar_chart.dart'; // Import du nouveau widget
+import 'disruptions_bar_chart.dart';
+import 'map_screen.dart';// Import du nouveau widget
 import 'models/line.dart';
 import 'models/disruption.dart';
 
@@ -21,17 +23,77 @@ class _DashboardState extends State<Dashboard> {
   List<Disruption> disruptions = [];
   Map<String, Line> linesMap = {};
   List<Line> disruptedLines = [];
+  List<Map<String, String>> stopAreaDisruptions = [];
 
   Map<String, int> transportDisruptionCounts = {};
   Map<String, double> transportDisruptionPercentages = {};
   final List<String> transportModes = ['bus', 'metro', 'rer'];
-
   Map<String, int> disruptionsPerDay = {};
+  final String apiKey = 'X81LtZyjIEWcHJEy26UvZgSrSmSOEdm4';
 
   @override
   void initState() {
     super.initState();
     loadJsonData();
+    fetchStopAreaDisruptions(); // Charge les perturbations pour la carte
+  }
+
+  Future<void> fetchStopAreaDisruptions() async {
+    List<Map<String, String>> tempDisruptions = [];
+    const int totalPagesToFetch = 4;
+
+    for (int page = 0; page < totalPagesToFetch; page++) {
+      final url = 'https://prim.iledefrance-mobilites.fr/marketplace/v2/navitia/line_reports/line_reports?start_page=$page';
+
+      try {
+        final response = await http.get(
+          Uri.parse(url),
+          headers: {
+            'Accept': 'application/json',
+            'apikey': apiKey,
+          },
+        ).timeout(const Duration(seconds: 10));
+
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body);
+          final allDisruptions = data['disruptions'] as List;
+
+          for (var disruption in allDisruptions) {
+            for (var impactedObject in disruption['impacted_objects']) {
+              var ptObject = impactedObject['pt_object'];
+
+              if (ptObject != null && ptObject['stop_area'] != null) {
+                var stopArea = ptObject['stop_area'];
+                var coord = stopArea['coord'];
+                String longitude = coord['lon'];
+                String latitude = coord['lat'];
+
+                tempDisruptions.add({
+                  'cause': stripHtmlTags(disruption['cause'] ?? 'Cause inconnue'),
+                  'messages': stripHtmlTags((disruption['messages'] as List<dynamic>?)
+                      ?.map((msg) => msg['text'])
+                      .join("\n") ?? 'Pas de message disponible'),
+                  'severity': stripHtmlTags(disruption['severity']?['name'] ?? 'Gravité inconnue'),
+                  'longitude': longitude,
+                  'latitude': latitude,
+                });
+              }
+            }
+          }
+        }
+      } catch (e) {
+        print("Erreur de chargement : $e");
+      }
+    }
+
+    setState(() {
+      stopAreaDisruptions = tempDisruptions;
+    });
+  }
+
+  String stripHtmlTags(String htmlText) {
+    RegExp exp = RegExp(r"<[^>]*>", multiLine: true, caseSensitive: true);
+    return htmlText.replaceAll(exp, '');
   }
 
   Future<void> loadJsonData() async {
@@ -176,11 +238,14 @@ class _DashboardState extends State<Dashboard> {
                 : TransportDisruptionPieChart(
               dataMap: transportDisruptionPercentages,
             ),
-            // Tuile en bas à gauche
-            DashboardTile(
-              title: 'Informations 3',
-              icon: Icons.pie_chart,
+            // Tuile en bas à gauche - intégration de la carte
+            stopAreaDisruptions.isEmpty
+                ? DashboardTile(
+              title: 'Aucune donnée',
+              icon: Icons.map,
               color: Colors.orange,
+            )
+                : MapScreen(disruptions: stopAreaDisruptions
             ),
             // Tuile en bas à droite - Graphique à barres
             disruptionsPerDay.isEmpty
