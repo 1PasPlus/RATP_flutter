@@ -1,3 +1,5 @@
+// models/disruption.dart
+
 class Disruption {
   final String? disruptionId;
   final String? status;
@@ -6,6 +8,7 @@ class Disruption {
   final String? severity;
   final List<Message>? messages;
   final List<ImpactedObject>? impactedObjects;
+  final String? updatedAt; // Ajout du champ updatedAt
 
   Disruption({
     this.disruptionId,
@@ -15,6 +18,7 @@ class Disruption {
     this.severity,
     this.messages,
     this.impactedObjects,
+    this.updatedAt, // N'oubliez pas d'ajouter ce champ ici aussi
   });
 
   factory Disruption.fromJson(Map<String, dynamic> json) {
@@ -33,6 +37,7 @@ class Disruption {
       impactedObjects: impactedObjectsList != null
           ? impactedObjectsList.map((i) => ImpactedObject.fromJson(i)).toList()
           : [],
+      updatedAt: json['updated_at'] as String?, // Extraction du champ updated_at depuis le JSON
     );
   }
 }

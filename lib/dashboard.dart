@@ -1,8 +1,13 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
+import 'package:charts_flutter/flutter.dart' as charts;
 import 'dashboard_tile.dart';
-import 'disrupted_lines_tile.dart'; // Assurez-vous d'importer ce fichier
+import 'disrupted_lines_tile.dart';
+import 'transport_disruption_pie_chart.dart';
+import 'disruptions_bar_chart.dart'; // Import du nouveau widget
 import 'models/line.dart';
 import 'models/disruption.dart';
 
@@ -17,11 +22,18 @@ class _DashboardState extends State<Dashboard> {
   Map<String, Line> linesMap = {};
   List<Line> disruptedLines = [];
 
+  Map<String, int> transportDisruptionCounts = {};
+  Map<String, double> transportDisruptionPercentages = {};
+  final List<String> transportModes = ['bus', 'metro', 'rer'];
+
+  Map<String, int> disruptionsPerDay = {};
+
   @override
   void initState() {
     super.initState();
     loadJsonData();
   }
+
   Future<void> loadJsonData() async {
     // Charger les données des lignes
     String linesData = await rootBundle.loadString('assets/lines.json');
@@ -62,18 +74,76 @@ class _DashboardState extends State<Dashboard> {
       }
     }
 
-    // Afficher les identifiants des lignes perturbées
-    print('Identifiants des lignes perturbées: $disruptedLineIds');
-
     // Récupérer les lignes perturbées
     disruptedLines = disruptedLineIds.map((id) => linesMap[id]).whereType<Line>().toList();
 
     print('Nombre de lignes perturbées trouvées: ${disruptedLines.length}'); // Debug
 
+    // Calculer le nombre de perturbations par type de transport
+    transportDisruptionCounts = {'bus': 0, 'metro': 0, 'rer': 0};
+
+    for (var line in disruptedLines) {
+      String? transportMode = line.transportMode?.toLowerCase();
+      if (transportModes.contains(transportMode)) {
+        transportDisruptionCounts[transportMode!] =
+            transportDisruptionCounts[transportMode]! + 1;
+      }
+    }
+
+    // Calculer le pourcentage de perturbations par type de transport
+    int totalDisruptions = transportDisruptionCounts.values.fold(0, (a, b) => a + b);
+
+    if (totalDisruptions > 0) {
+      transportDisruptionPercentages = {
+        for (var mode in transportModes)
+          mode: (transportDisruptionCounts[mode]! / totalDisruptions) * 100
+      };
+    } else {
+      transportDisruptionPercentages = {
+        for (var mode in transportModes) mode: 0.0
+      };
+    }
+
+    print('Pourcentages de perturbations par type de transport: $transportDisruptionPercentages');
+
+    // Calculer le nombre de perturbations par jour
+    DateTime now = DateTime.now();
+    String today = DateFormat('yyyy-MM-dd').format(now);
+
+    int todayDisruptions = 0;
+    for (var disruption in disruptions) {
+      // Supposons que 'updatedAt' est au format '20231118T184000'
+      String? updatedAt = disruption.updatedAt;
+      if (updatedAt != null) {
+        try {
+          DateTime disruptionDate = DateFormat('yyyyMMddTHHmmss').parse(updatedAt);
+          String disruptionDay = DateFormat('yyyy-MM-dd').format(disruptionDate);
+          if (disruptionDay == today) {
+            todayDisruptions += disruption.messages?.length ?? 0;
+          }
+        } catch (e) {
+          // Si le parsing échoue, passer à la perturbation suivante
+          continue;
+        }
+      }
+    }
+
+    // Générer des perturbations aléatoires pour les 6 jours précédents
+    disruptionsPerDay = {};
+    for (int i = 6; i >= 0; i--) {
+      DateTime day = now.subtract(Duration(days: i));
+      String dayLabel = DateFormat('EEE', 'fr_FR').format(day); // Ex : 'lun.', 'mar.'
+      if (i == 0) {
+        disruptionsPerDay[dayLabel] = todayDisruptions;
+      } else {
+        disruptionsPerDay[dayLabel] = Random().nextInt(9) + 2; // Aléatoire entre 2 et 10
+      }
+    }
+
+    print('Perturbations par jour: $disruptionsPerDay'); // Debug
+
     setState(() {});
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -85,6 +155,7 @@ class _DashboardState extends State<Dashboard> {
           crossAxisSpacing: 16.0,
           mainAxisSpacing: 16.0,
           children: [
+            // Tuile en haut à gauche
             disruptedLines.isEmpty
                 ? DashboardTile(
               title: 'Aucune perturbation',
@@ -95,21 +166,31 @@ class _DashboardState extends State<Dashboard> {
               disruptedLines: disruptedLines,
               disruptions: disruptions,
             ),
-            // Les autres tuiles du tableau de bord
-            DashboardTile(
-              title: 'Informations 2',
-              icon: Icons.bar_chart,
-              color: Colors.green,
+            // Tuile en haut à droite
+            transportDisruptionPercentages.isEmpty
+                ? DashboardTile(
+              title: 'Aucune perturbation',
+              icon: Icons.donut_large,
+              color: Colors.blue,
+            )
+                : TransportDisruptionPieChart(
+              dataMap: transportDisruptionPercentages,
             ),
+            // Tuile en bas à gauche
             DashboardTile(
               title: 'Informations 3',
               icon: Icons.pie_chart,
               color: Colors.orange,
             ),
-            DashboardTile(
-              title: 'Informations 4',
-              icon: Icons.trending_up,
-              color: Colors.red,
+            // Tuile en bas à droite - Graphique à barres
+            disruptionsPerDay.isEmpty
+                ? DashboardTile(
+              title: 'Aucune donnée',
+              icon: Icons.bar_chart,
+              color: Colors.orange,
+            )
+                : DisruptionsBarChart(
+              disruptionsPerDay: disruptionsPerDay,
             ),
           ],
         ),
