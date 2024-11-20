@@ -4,12 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
-import 'package:charts_flutter/flutter.dart' as charts;
 import 'dashboard_tile.dart';
 import 'disrupted_lines_tile.dart';
 import 'transport_disruption_pie_chart.dart';
 import 'disruptions_bar_chart.dart';
-import 'map_screen.dart';// Import du nouveau widget
+import 'map_screen.dart';
+import 'disruptions_line_chart.dart';
 import 'models/line.dart';
 import 'models/disruption.dart';
 
@@ -24,238 +24,161 @@ class _DashboardState extends State<Dashboard> {
   Map<String, Line> linesMap = {};
   List<Line> disruptedLines = [];
   List<Map<String, String>> stopAreaDisruptions = [];
-
   Map<String, int> transportDisruptionCounts = {};
   Map<String, double> transportDisruptionPercentages = {};
-  final List<String> transportModes = ['bus', 'metro', 'rer'];
   Map<String, int> disruptionsPerDay = {};
+  final List<String> transportModes = ['bus', 'metro', 'rer'];
   final String apiKey = 'X81LtZyjIEWcHJEy26UvZgSrSmSOEdm4';
 
   @override
   void initState() {
     super.initState();
     loadJsonData();
-    fetchStopAreaDisruptions(); // Charge les perturbations pour la carte
+    fetchStopAreaDisruptions();
+  }
+
+  Future<void> loadJsonData() async {
+    try {
+      // Load lines data
+      String linesData = await rootBundle.loadString('assets/lines.json');
+      final linesJson = json.decode(linesData) as List;
+      lines = linesJson.map((json) => Line.fromJson(json)).toList();
+      linesMap = {for (var line in lines) if (line.idLine != null) line.idLine!: line};
+
+      // Load disruptions data
+      String disruptionsData = await rootBundle.loadString('assets/disruptions.json');
+      final disruptionsJson = json.decode(disruptionsData) as List;
+      disruptions = disruptionsJson.map((json) => Disruption.fromJson(json)).toList();
+
+      // Find disrupted lines
+      disruptedLines = disruptions
+          .expand((disruption) => disruption.impactedObjects ?? [])
+          .where((obj) => obj.type == 'line')
+          .map((obj) => obj.objectId?.split('IDFM:').last.trim())
+          .where((id) => id != null && linesMap.containsKey(id))
+          .map((id) => linesMap[id]!)
+          .toList();
+
+      // Calculate transport disruption counts
+      transportDisruptionCounts = {'bus': 0, 'metro': 0, 'rer': 0};
+      for (var line in disruptedLines) {
+        String? mode = line.transportMode?.toLowerCase();
+        if (transportModes.contains(mode)) {
+          transportDisruptionCounts[mode!] = (transportDisruptionCounts[mode]! + 1);
+        }
+      }
+
+      // Calculate percentages
+      int totalDisruptions = transportDisruptionCounts.values.fold(0, (a, b) => a + b);
+      transportDisruptionPercentages = totalDisruptions > 0
+          ? transportDisruptionCounts.map((k, v) => MapEntry(k, v / totalDisruptions * 100))
+          : {for (var mode in transportModes) mode: 0.0};
+
+      // Static example for disruptions per day
+      disruptionsPerDay = {
+        'Lundi': 5,
+        'Mardi': 8,
+        'Mercredi': 2,
+        'Jeudi': 7,
+        'Vendredi': 10,
+        'Samedi': 4,
+        'Dimanche': 1,
+      };
+
+      setState(() {}); // Trigger UI update
+    } catch (e) {
+      print("Error loading data: $e");
+    }
   }
 
   Future<void> fetchStopAreaDisruptions() async {
-    List<Map<String, String>> tempDisruptions = [];
-    const int totalPagesToFetch = 4;
+    try {
+      final List<Map<String, String>> tempDisruptions = [];
+      const int totalPagesToFetch = 4;
 
-    for (int page = 0; page < totalPagesToFetch; page++) {
-      final url = 'https://prim.iledefrance-mobilites.fr/marketplace/v2/navitia/line_reports/line_reports?start_page=$page';
-
-      try {
-        final response = await http.get(
-          Uri.parse(url),
-          headers: {
-            'Accept': 'application/json',
-            'apikey': apiKey,
-          },
-        ).timeout(const Duration(seconds: 10));
+      for (int page = 0; page < totalPagesToFetch; page++) {
+        final url =
+            'https://prim.iledefrance-mobilites.fr/marketplace/v2/navitia/line_reports/line_reports?start_page=$page';
+        final response = await http.get(Uri.parse(url), headers: {
+          'Accept': 'application/json',
+          'apikey': apiKey,
+        }).timeout(const Duration(seconds: 10));
 
         if (response.statusCode == 200) {
           final data = json.decode(response.body);
           final allDisruptions = data['disruptions'] as List;
 
           for (var disruption in allDisruptions) {
-            for (var impactedObject in disruption['impacted_objects']) {
-              var ptObject = impactedObject['pt_object'];
-
+            for (var impactedObject in disruption['impacted_objects'] ?? []) {
+              final ptObject = impactedObject['pt_object'];
               if (ptObject != null && ptObject['stop_area'] != null) {
-                var stopArea = ptObject['stop_area'];
-                var coord = stopArea['coord'];
-                String longitude = coord['lon'];
-                String latitude = coord['lat'];
-
+                final stopArea = ptObject['stop_area'];
+                final coord = stopArea['coord'];
                 tempDisruptions.add({
-                  'cause': stripHtmlTags(disruption['cause'] ?? 'Cause inconnue'),
-                  'messages': stripHtmlTags((disruption['messages'] as List<dynamic>?)
+                  'cause': disruption['cause'] ?? 'Cause inconnue',
+                  'messages': (disruption['messages'] as List<dynamic>?)
                       ?.map((msg) => msg['text'])
-                      .join("\n") ?? 'Pas de message disponible'),
-                  'severity': stripHtmlTags(disruption['severity']?['name'] ?? 'Gravité inconnue'),
-                  'longitude': longitude,
-                  'latitude': latitude,
+                      .join("\n") ??
+                      'Pas de message disponible',
+                  'severity': disruption['severity']?['name'] ?? 'Gravité inconnue',
+                  'longitude': coord['lon'],
+                  'latitude': coord['lat'],
                 });
               }
             }
           }
         }
-      } catch (e) {
-        print("Erreur de chargement : $e");
       }
+      setState(() {
+        stopAreaDisruptions = tempDisruptions;
+      });
+    } catch (e) {
+      print("Error fetching stop area disruptions: $e");
     }
-
-    setState(() {
-      stopAreaDisruptions = tempDisruptions;
-    });
-  }
-
-  String stripHtmlTags(String htmlText) {
-    RegExp exp = RegExp(r"<[^>]*>", multiLine: true, caseSensitive: true);
-    return htmlText.replaceAll(exp, '');
-  }
-
-  Future<void> loadJsonData() async {
-    // Charger les données des lignes
-    String linesData = await rootBundle.loadString('assets/lines.json');
-    final linesJson = json.decode(linesData) as List;
-    lines = linesJson.map((json) => Line.fromJson(json)).toList();
-
-    print('Nombre de lignes chargées: ${lines.length}'); // Debug
-
-    // Créer un map pour un accès rapide aux lignes par idLine
-    linesMap = {
-      for (var line in lines)
-        if (line.idLine != null) line.idLine!: line,
-    };
-
-    // Charger les données des perturbations
-    String disruptionsData = await rootBundle.loadString('assets/disruptions.json');
-    final disruptionsJson = json.decode(disruptionsData) as List;
-    disruptions = disruptionsJson.map((json) => Disruption.fromJson(json)).toList();
-
-    print('Nombre de perturbations chargées: ${disruptions.length}'); // Debug
-
-    // Trouver les lignes perturbées
-    Set<String> disruptedLineIds = {};
-    for (var disruption in disruptions) {
-      for (var impactedObject in disruption.impactedObjects ?? []) {
-        if (impactedObject.type == 'line') {
-          String? objectId = impactedObject.objectId;
-          if (objectId != null) {
-            // Extraction de l'identifiant de ligne
-            String lineId = objectId.split('IDFM:').last.trim();
-
-            // Debug: afficher l'identifiant extrait
-            print('Identifiant de ligne extrait: "$lineId"');
-
-            disruptedLineIds.add(lineId);
-          }
-        }
-      }
-    }
-
-    // Récupérer les lignes perturbées
-    disruptedLines = disruptedLineIds.map((id) => linesMap[id]).whereType<Line>().toList();
-
-    print('Nombre de lignes perturbées trouvées: ${disruptedLines.length}'); // Debug
-
-    // Calculer le nombre de perturbations par type de transport
-    transportDisruptionCounts = {'bus': 0, 'metro': 0, 'rer': 0};
-
-    for (var line in disruptedLines) {
-      String? transportMode = line.transportMode?.toLowerCase();
-      if (transportModes.contains(transportMode)) {
-        transportDisruptionCounts[transportMode!] =
-            transportDisruptionCounts[transportMode]! + 1;
-      }
-    }
-
-    // Calculer le pourcentage de perturbations par type de transport
-    int totalDisruptions = transportDisruptionCounts.values.fold(0, (a, b) => a + b);
-
-    if (totalDisruptions > 0) {
-      transportDisruptionPercentages = {
-        for (var mode in transportModes)
-          mode: (transportDisruptionCounts[mode]! / totalDisruptions) * 100
-      };
-    } else {
-      transportDisruptionPercentages = {
-        for (var mode in transportModes) mode: 0.0
-      };
-    }
-
-    print('Pourcentages de perturbations par type de transport: $transportDisruptionPercentages');
-
-    // Calculer le nombre de perturbations par jour
-    DateTime now = DateTime.now();
-    String today = DateFormat('yyyy-MM-dd').format(now);
-
-    int todayDisruptions = 0;
-    for (var disruption in disruptions) {
-      // Supposons que 'updatedAt' est au format '20231118T184000'
-      String? updatedAt = disruption.updatedAt;
-      if (updatedAt != null) {
-        try {
-          DateTime disruptionDate = DateFormat('yyyyMMddTHHmmss').parse(updatedAt);
-          String disruptionDay = DateFormat('yyyy-MM-dd').format(disruptionDate);
-          if (disruptionDay == today) {
-            todayDisruptions += disruption.messages?.length ?? 0;
-          }
-        } catch (e) {
-          // Si le parsing échoue, passer à la perturbation suivante
-          continue;
-        }
-      }
-    }
-
-    // Générer des perturbations aléatoires pour les 6 jours précédents
-    disruptionsPerDay = {};
-    for (int i = 6; i >= 0; i--) {
-      DateTime day = now.subtract(Duration(days: i));
-      String dayLabel = DateFormat('EEE', 'fr_FR').format(day); // Ex : 'lun.', 'mar.'
-      if (i == 0) {
-        disruptionsPerDay[dayLabel] = todayDisruptions;
-      } else {
-        disruptionsPerDay[dayLabel] = Random().nextInt(9) + 2; // Aléatoire entre 2 et 10
-      }
-    }
-
-    print('Perturbations par jour: $disruptionsPerDay'); // Debug
-
-    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: GridView.count(
-          crossAxisCount: 2, // Nombre de colonnes
+          crossAxisCount: 2,
           crossAxisSpacing: 16.0,
           mainAxisSpacing: 16.0,
           children: [
-            // Tuile en haut à gauche
             disruptedLines.isEmpty
                 ? DashboardTile(
               title: 'Aucune perturbation',
               icon: Icons.check_circle,
               color: Colors.green,
+              child: SizedBox(),
             )
                 : DisruptedLinesTile(
               disruptedLines: disruptedLines,
               disruptions: disruptions,
             ),
-            // Tuile en haut à droite
             transportDisruptionPercentages.isEmpty
                 ? DashboardTile(
               title: 'Aucune perturbation',
               icon: Icons.donut_large,
               color: Colors.blue,
+              child: SizedBox(),
             )
-                : TransportDisruptionPieChart(
-              dataMap: transportDisruptionPercentages,
-            ),
-            // Tuile en bas à gauche - intégration de la carte
+                : TransportDisruptionPieChart(dataMap: transportDisruptionPercentages),
             stopAreaDisruptions.isEmpty
                 ? DashboardTile(
               title: 'Aucune donnée',
               icon: Icons.map,
               color: Colors.orange,
+              child: SizedBox(),
             )
-                : MapScreen(disruptions: stopAreaDisruptions
-            ),
-            // Tuile en bas à droite - Graphique à barres
-            disruptionsPerDay.isEmpty
-                ? DashboardTile(
-              title: 'Aucune donnée',
-              icon: Icons.bar_chart,
-              color: Colors.orange,
-            )
-                : DisruptionsBarChart(
-              disruptionsPerDay: disruptionsPerDay,
+                : MapScreen(disruptions: stopAreaDisruptions),
+            DashboardTile(
+              title: 'Perturbations par jour',
+              icon: Icons.show_chart,
+              color: Colors.blue,
+              child: DisruptionsLineChart.sampleData(),
             ),
           ],
         ),

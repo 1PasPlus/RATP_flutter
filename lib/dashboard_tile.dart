@@ -4,8 +4,14 @@ class DashboardTile extends StatelessWidget {
   final String title;
   final IconData icon;
   final Color color;
+  final Widget child; // Update to accept any Widget
 
-  DashboardTile({required this.title, required this.icon, required this.color});
+  DashboardTile({
+    required this.title,
+    required this.icon,
+    required this.color,
+    required this.child,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -17,20 +23,20 @@ class DashboardTile extends StatelessWidget {
       ),
       child: InkWell(
         onTap: () {
-          // Action lors du clic sur le conteneur (optionnel)
+          // Optional: Action when the tile is tapped
         },
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 64.0, color: color),
-              SizedBox(height: 16.0),
-              Text(
-                title,
-                style: TextStyle(fontSize: 24.0, color: color),
-              ),
-            ],
-          ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 64.0, color: color),
+            SizedBox(height: 16.0),
+            Text(
+              title,
+              style: TextStyle(fontSize: 24.0, color: color),
+            ),
+            SizedBox(height: 16.0),
+            Expanded(child: child), // Display the dynamic widget
+          ],
         ),
       ),
     );
