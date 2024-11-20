@@ -1,84 +1,95 @@
 import 'package:flutter/material.dart';
-import 'package:pie_chart/pie_chart.dart';
+import 'package:charts_flutter/flutter.dart' as charts;
 
 class TransportDisruptionPieChart extends StatelessWidget {
-  final Map<String, double> dataMap;
-
-  TransportDisruptionPieChart({required this.dataMap});
-
-  final colorList = <Color>[
-    Colors.blue, // Bus
-    Colors.orange, // Métro
-    Colors.green, // RER
-  ];
-
-  final transportModeLabels = {
-    'bus': 'Bus',
-    'metro': 'Métro',
-    'rer': 'RER',
+  // Hardcoded data for the chart
+  final Map<String, double> dataMap = {
+    'Bus': 38.0,
+    'Metro': 22.0,
+    'Rer': 40.0,
   };
 
   @override
   Widget build(BuildContext context) {
-    // Filtrer les données pour n'inclure que les modes avec des pourcentages
-    Map<String, double> filteredDataMap = {};
-    dataMap.forEach((key, value) {
-      if (transportModeLabels.containsKey(key)) {
-        filteredDataMap[transportModeLabels[key]!] = value;
-      }
-    });
+    final List<charts.Series<ChartData, String>> seriesList = [
+      charts.Series<ChartData, String>(
+        id: 'Disruptions',
+        domainFn: (ChartData data, _) => data.label,
+        measureFn: (ChartData data, _) => data.value,
+        colorFn: (ChartData data, _) => data.color,
+        data: dataMap.entries.map((entry) {
+          final color = _getColorForLabel(entry.key);
+          return ChartData(entry.key, entry.value, charts.ColorUtil.fromDartColor(color));
+        }).toList(),
+      ),
+    ];
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.blue.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8.0),
-        border: Border.all(color: Colors.blue),
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(8.0),
-        child: Column(
-          children: [
-            Text(
-              'Répartition des perturbations',
-              style: TextStyle(fontSize: 18.0, color: Colors.blue, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
+    return Column(
+      children: [
+        // Donut chart
+        Expanded(
+          child: charts.PieChart<String>(
+            seriesList,
+            animate: true,
+            defaultRenderer: charts.ArcRendererConfig(
+              arcWidth: 40, // Set width for donut effect
+              startAngle: 4 / 5 * 3.14, // Optional: Rotate the chart
+              arcRendererDecorators: [], // No labels on the chart itself
             ),
-            SizedBox(height: 16.0),
-            Expanded(
-              child: PieChart(
-                dataMap: filteredDataMap,
-                animationDuration: Duration(milliseconds: 800),
-                chartLegendSpacing: 32.0,
-                chartRadius: MediaQuery.of(context).size.width / 3.2,
-                colorList: colorList,
-                initialAngleInDegree: 0,
-                chartType: ChartType.disc,
-                ringStrokeWidth: 32,
-                legendOptions: LegendOptions(
-                  showLegends: false,
-                ),
-                chartValuesOptions: ChartValuesOptions(
-                  showChartValueBackground: false,
-                  showChartValues: false,
-                ),
-              ),
-            ),
-            SizedBox(height: 16.0),
-            // Affichage des pourcentages sous le graphique
-            Column(
-              children: transportModeLabels.entries.map((entry) {
-                String mode = entry.key;
-                String label = entry.value;
-                double percentage = dataMap[mode] ?? 0.0;
-                return Text(
-                  '$label: ${percentage.toStringAsFixed(1)}%',
-                  style: TextStyle(fontSize: 16.0),
-                );
-              }).toList(),
-            ),
-          ],
+          ),
         ),
-      ),
+        // Legend below the chart
+        Padding(
+          padding: const EdgeInsets.only(top: 16.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: dataMap.entries.map((entry) {
+              return Column(
+                children: [
+                  Container(
+                    width: 16,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _getColorForLabel(entry.key),
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    '${entry.value.toStringAsFixed(0)}%',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                  Text(
+                    entry.key,
+                    style: TextStyle(fontSize: 12),
+                  ),
+                ],
+              );
+            }).toList(),
+          ),
+        ),
+      ],
     );
   }
+
+  Color _getColorForLabel(String label) {
+    switch (label.toLowerCase()) {
+      case 'bus':
+        return Colors.blue;
+      case 'metro':
+        return Colors.orange;
+      case 'rer':
+        return Colors.green;
+      default:
+        return Colors.grey;
+    }
+  }
+}
+
+class ChartData {
+  final String label;
+  final double value;
+  final charts.Color color;
+
+  ChartData(this.label, this.value, this.color);
 }

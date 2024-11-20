@@ -19,7 +19,7 @@ class MapScreen extends StatelessWidget {
             urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
             initialFocalLatLng: const MapLatLng(48.8566, 2.3522), // Centré sur Paris
             zoomPanBehavior: MapZoomPanBehavior(
-              zoomLevel: 12,
+              zoomLevel: 9,
             ),
             initialMarkersCount: disruptions.length,
             markerBuilder: (BuildContext context, int index) {

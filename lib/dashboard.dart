@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -152,7 +153,7 @@ class _DashboardState extends State<Dashboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFD3F6E4), // Vert RATP pour le fond du dashboard
+      backgroundColor: Color(0xFFECFBF4), // Vert RATP pour le fond du dashboard
       body: Padding(
         padding: const EdgeInsets.all(8.0),
         child: GridView.builder(
@@ -177,15 +178,14 @@ class _DashboardState extends State<Dashboard> {
                 disruptions: disruptions,
               );
             } else if (index == 1) {
-              return transportDisruptionPercentages.isEmpty
-                  ? DashboardTile(
+              return DashboardTile(
                 title: 'Répartition des perturbations',
                 icon: Icons.donut_large,
-                color: Color(0xFFA5D6A7), // Vert doux
-                child: SizedBox(),
-              )
-                  : TransportDisruptionPieChart(dataMap: transportDisruptionPercentages);
-            } else if (index == 2) {
+                color: Color(0xFFA5D6A7),
+                child: TransportDisruptionPieChart(),
+              );
+            }
+            else if (index == 2) {
               return stopAreaDisruptions.isEmpty
                   ? DashboardTile(
                 title: 'Carte des perturbations',
