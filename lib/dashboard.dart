@@ -43,18 +43,25 @@ class _DashboardState extends State<Dashboard> {
       String linesData = await rootBundle.loadString('assets/lines.json');
       final linesJson = json.decode(linesData) as List;
       lines = linesJson.map((json) => Line.fromJson(json)).toList();
-      linesMap = {for (var line in lines) if (line.idLine != null) line.idLine!: line};
+      linesMap =
+      {for (var line in lines) if (line.idLine != null) line.idLine!: line};
 
       // Load disruptions data
-      String disruptionsData = await rootBundle.loadString('assets/disruptions.json');
+      String disruptionsData = await rootBundle.loadString(
+          'assets/disruptions.json');
       final disruptionsJson = json.decode(disruptionsData) as List;
-      disruptions = disruptionsJson.map((json) => Disruption.fromJson(json)).toList();
+      disruptions =
+          disruptionsJson.map((json) => Disruption.fromJson(json)).toList();
 
       // Find disrupted lines
       disruptedLines = disruptions
           .expand((disruption) => disruption.impactedObjects ?? [])
           .where((obj) => obj.type == 'line')
-          .map((obj) => obj.objectId?.split('IDFM:').last.trim())
+          .map((obj) =>
+          obj.objectId
+              ?.split('IDFM:')
+              .last
+              .trim())
           .where((id) => id != null && linesMap.containsKey(id))
           .map((id) => linesMap[id]!)
           .toList();
@@ -64,14 +71,17 @@ class _DashboardState extends State<Dashboard> {
       for (var line in disruptedLines) {
         String? mode = line.transportMode?.toLowerCase();
         if (transportModes.contains(mode)) {
-          transportDisruptionCounts[mode!] = (transportDisruptionCounts[mode]! + 1);
+          transportDisruptionCounts[mode!] =
+          (transportDisruptionCounts[mode]! + 1);
         }
       }
 
       // Calculate percentages
-      int totalDisruptions = transportDisruptionCounts.values.fold(0, (a, b) => a + b);
+      int totalDisruptions = transportDisruptionCounts.values.fold(
+          0, (a, b) => a + b);
       transportDisruptionPercentages = totalDisruptions > 0
-          ? transportDisruptionCounts.map((k, v) => MapEntry(k, v / totalDisruptions * 100))
+          ? transportDisruptionCounts.map((k, v) =>
+          MapEntry(k, v / totalDisruptions * 100))
           : {for (var mode in transportModes) mode: 0.0};
 
       // Static example for disruptions per day
@@ -120,7 +130,8 @@ class _DashboardState extends State<Dashboard> {
                       ?.map((msg) => msg['text'])
                       .join("\n") ??
                       'Pas de message disponible',
-                  'severity': disruption['severity']?['name'] ?? 'Gravité inconnue',
+                  'severity': disruption['severity']?['name'] ??
+                      'Gravité inconnue',
                   'longitude': coord['lon'],
                   'latitude': coord['lat'],
                 });
@@ -138,49 +149,60 @@ class _DashboardState extends State<Dashboard> {
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Color(0xFFD3F6E4), // Vert RATP pour le fond du dashboard
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: GridView.count(
-          crossAxisCount: 2,
-          crossAxisSpacing: 16.0,
-          mainAxisSpacing: 16.0,
-          children: [
-            disruptedLines.isEmpty
-                ? DashboardTile(
-              title: 'Aucune perturbation',
-              icon: Icons.check_circle,
-              color: Colors.green,
-              child: SizedBox(),
-            )
-                : DisruptedLinesTile(
-              disruptedLines: disruptedLines,
-              disruptions: disruptions,
-            ),
-            transportDisruptionPercentages.isEmpty
-                ? DashboardTile(
-              title: 'Aucune perturbation',
-              icon: Icons.donut_large,
-              color: Colors.blue,
-              child: SizedBox(),
-            )
-                : TransportDisruptionPieChart(dataMap: transportDisruptionPercentages),
-            stopAreaDisruptions.isEmpty
-                ? DashboardTile(
-              title: 'Aucune donnée',
-              icon: Icons.map,
-              color: Colors.orange,
-              child: SizedBox(),
-            )
-                : MapScreen(disruptions: stopAreaDisruptions),
-            DashboardTile(
-              title: 'Perturbations par jour',
-              icon: Icons.show_chart,
-              color: Colors.blue,
-              child: DisruptionsLineChart.sampleData(),
-            ),
-          ],
+        padding: const EdgeInsets.all(8.0),
+        child: GridView.builder(
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2, // Deux tuiles par ligne
+            crossAxisSpacing: 8.0, // Espacement horizontal
+            mainAxisSpacing: 8.0, // Espacement vertical
+            childAspectRatio: 1.8, // Ratio pour rendre les tuiles plus compactes
+          ),
+          itemCount: 4, // Nombre total de tuiles
+          itemBuilder: (context, index) {
+            if (index == 0) {
+              return disruptedLines.isEmpty
+                  ? DashboardTile(
+                title: 'Aucune perturbation',
+                icon: Icons.check_circle,
+                color: Color(0xFFBDECB6), // Vert clair pour contraste
+                child: SizedBox(),
+              )
+                  : DisruptedLinesTile(
+                disruptedLines: disruptedLines,
+                disruptions: disruptions,
+              );
+            } else if (index == 1) {
+              return transportDisruptionPercentages.isEmpty
+                  ? DashboardTile(
+                title: 'Répartition des perturbations',
+                icon: Icons.donut_large,
+                color: Color(0xFFA5D6A7), // Vert doux
+                child: SizedBox(),
+              )
+                  : TransportDisruptionPieChart(dataMap: transportDisruptionPercentages);
+            } else if (index == 2) {
+              return stopAreaDisruptions.isEmpty
+                  ? DashboardTile(
+                title: 'Carte des perturbations',
+                icon: Icons.map,
+                color: Color(0xFF66BB6A), // Vert moyen
+                child: SizedBox(),
+              )
+                  : MapScreen(disruptions: stopAreaDisruptions);
+            } else {
+              return DashboardTile(
+                title: 'Perturbations par jour',
+                icon: Icons.show_chart,
+                color: Color(0xFF4CAF50), // Vert vif
+                child: DisruptionsLineChart.sampleData(),
+              );
+            }
+          },
         ),
       ),
     );
