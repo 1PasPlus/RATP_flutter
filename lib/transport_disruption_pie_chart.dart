@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
 
 class TransportDisruptionPieChart extends StatelessWidget {
-  // Hardcoded data for the chart
+  // Données codées en dur pour le graphique
   final Map<String, double> dataMap = {
     'Bus': 38.0,
     'Metro': 22.0,
@@ -26,19 +26,19 @@ class TransportDisruptionPieChart extends StatelessWidget {
 
     return Column(
       children: [
-        // Donut chart
+        // Graphique en doughnut
         Expanded(
           child: charts.PieChart<String>(
             seriesList,
             animate: true,
             defaultRenderer: charts.ArcRendererConfig(
-              arcWidth: 40, // Set width for donut effect
-              startAngle: 4 / 5 * 3.14, // Optional: Rotate the chart
-              arcRendererDecorators: [], // No labels on the chart itself
+              arcWidth: 20, // Largeur de l'anneau pour créer un effet doughnut
+              startAngle: 4 / 5 * 3.14, // Optionnel : rotation du graphique
+              arcRendererDecorators: [], // Pas d'étiquettes sur le graphique
             ),
           ),
         ),
-        // Legend below the chart
+        // Légende sous le graphique
         Padding(
           padding: const EdgeInsets.only(top: 16.0),
           child: Row(
@@ -72,6 +72,7 @@ class TransportDisruptionPieChart extends StatelessWidget {
     );
   }
 
+  // Couleurs pour chaque type de transport
   Color _getColorForLabel(String label) {
     switch (label.toLowerCase()) {
       case 'bus':
@@ -86,6 +87,7 @@ class TransportDisruptionPieChart extends StatelessWidget {
   }
 }
 
+// Classe pour les données du graphique
 class ChartData {
   final String label;
   final double value;
