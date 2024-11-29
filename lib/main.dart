@@ -11,6 +11,8 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'Tableau de Bord',
+        debugShowCheckedModeBanner: false, // Désactive la bannière "Debug"
+
         theme: ThemeData(
           primarySwatch: Colors.blue,
         ),

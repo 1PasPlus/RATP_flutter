@@ -56,7 +56,7 @@ class _DisruptedLinesTileState extends State<DisruptedLinesTile> {
                 children: [
                   ListTile(
                     title: Text(
-                      'Ligne ${line.shortNameLine ?? 'N/A'}: ${line.nameLine ?? 'Nom indisponible'}',
+                      'Ligne ${line.shortNameLine ?? 'N/A'} ',
                       style: TextStyle(color: Colors.black),
                     ),
                     trailing: Icon(isExpanded ? Icons.expand_less : Icons.expand_more),
@@ -87,7 +87,8 @@ class _DisruptedLinesTileState extends State<DisruptedLinesTile> {
   }
 
   List<String> getDisruptionMessages(Line line) {
-    List<String> messages = [];
+    Set<String> uniqueMessages = {}; // Utiliser un Set pour stocker des messages uniques
+
     for (var disruption in widget.disruptions) {
       for (var impactedObject in disruption.impactedObjects ?? []) {
         if (impactedObject.type == 'line') {
@@ -95,12 +96,26 @@ class _DisruptedLinesTileState extends State<DisruptedLinesTile> {
           if (objectId != null) {
             String lineId = objectId.split('IDFM:').last.trim();
             if (lineId == line.idLine) {
-              messages.addAll(disruption.messages?.map((m) => m.text ?? '').toList() ?? []);
+              // Parcourir et nettoyer les messages avant de les ajouter
+              disruption.messages?.forEach((m) {
+                String cleanedMessage = cleanMessage(m.text ?? '').trim(); // Nettoyer et normaliser
+                uniqueMessages.add(cleanedMessage); // Ajout au Set
+              });
             }
           }
         }
       }
     }
-    return messages;
+
+    // Retourner les messages uniques sous forme de liste
+    return uniqueMessages.toList();
   }
 }
+
+String cleanMessage(String message) {
+  return message
+      .replaceAll('&nbsp;', ' ') // Remplace &nbsp; par un espace
+      .replaceAll(RegExp(r'<[^>]*>'), '') // Supprime les balises HTML
+      .replaceAll(RegExp(r'&[a-zA-Z0-9#]+;'), ''); // Supprime les autres entités HTML
+}
+
