@@ -10,6 +10,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
         title: 'Tableau de Bord',
+        debugShowCheckedModeBanner: false, // Désactive la bannière "Debug"
+
         theme: ThemeData(
           primarySwatch: Colors.blue,
         ),
