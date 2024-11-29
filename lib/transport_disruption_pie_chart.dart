@@ -25,47 +25,77 @@ class TransportDisruptionPieChart extends StatelessWidget {
     ];
 
     return Column(
+      mainAxisAlignment: MainAxisAlignment.start,
       children: [
-        // Graphique en doughnut
-        Expanded(
-          child: charts.PieChart<String>(
-            seriesList,
-            animate: true,
-            defaultRenderer: charts.ArcRendererConfig(
-              arcWidth: 20, // Largeur de l'anneau pour créer un effet doughnut
-              startAngle: 4 / 5 * 3.14, // Optionnel : rotation du graphique
-              arcRendererDecorators: [], // Pas d'étiquettes sur le graphique
+        // Titre de la tuile
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12.0),
+          child: Text(
+            'Répartition des pannes par transport',
+            style: TextStyle(
+              fontSize: 20.0, // Même taille que le titre de gauche
+              color: Colors.green.shade200, // Couleur de la tuile
+              fontWeight: FontWeight.bold, // Même style
             ),
+            textAlign: TextAlign.center,
           ),
         ),
-        // Légende sous le graphique
-        Padding(
-          padding: const EdgeInsets.only(top: 16.0),
+        // Contenu : graphique et légende
+        Expanded(
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: dataMap.entries.map((entry) {
-              return Column(
-                children: [
-                  Container(
-                    width: 16,
-                    height: 16,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: _getColorForLabel(entry.key),
-                    ),
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Graphique circulaire à gauche
+              Expanded(
+                flex: 3, // Plus grand espace pour le graphique
+                child: charts.PieChart<String>(
+                  seriesList,
+                  animate: true,
+                  defaultRenderer: charts.ArcRendererConfig(
+                    arcWidth: 25, // Largeur du camembert
+                    arcRendererDecorators: [],
                   ),
-                  SizedBox(height: 4),
-                  Text(
-                    '${entry.value.toStringAsFixed(0)}%',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                  ),
-                  Text(
-                    entry.key,
-                    style: TextStyle(fontSize: 12),
-                  ),
-                ],
-              );
-            }).toList(),
+                ),
+              ),
+              // Légende à droite
+              Expanded(
+                flex: 2, // Moins d'espace pour la légende
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: dataMap.entries.map((entry) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 12,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: _getColorForLabel(entry.key),
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            '${entry.value.toStringAsFixed(0)}%',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                          SizedBox(width: 4),
+                          Text(
+                            entry.key,
+                            style: TextStyle(fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
           ),
         ),
       ],
