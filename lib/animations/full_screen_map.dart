@@ -35,15 +35,45 @@ class FullScreenMap extends StatelessWidget {
                       longitude: longitude,
                       child: GestureDetector(
                         onTap: () {
-                          // Affiche une boîte de dialogue avec le message associé à la perturbation
                           showDialog(
                             context: context,
                             builder: (context) {
+                              // Nettoyage du message
+                              String rawMessage = disruptions[index]['messages'] ?? "Message indisponible";
+                              String cleanedMessage = rawMessage.replaceAll("\\n", "\n");
+
                               return AlertDialog(
-                                title: Text("Détails de la perturbation"),
-                                content: Text(
-                                  "Message: ${disruptions[index]['messages']}\n"
-                                      "Gravité: ${disruptions[index]['severity']}",
+                                title: Text(
+                                  "Détails de la perturbation",
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                ),
+                                content: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Affichage du message principal
+                                    Text(
+                                      "Message :",
+                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                    ),
+                                    SizedBox(height: 4),
+                                    Text(
+                                      cleanedMessage,
+                                      style: TextStyle(fontSize: 14),
+                                      textAlign: TextAlign.justify,
+                                    ),
+                                    SizedBox(height: 12),
+                                    // Affichage de la gravité
+                                    Text(
+                                      "Gravité :",
+                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                    ),
+                                    SizedBox(height: 4),
+                                    Text(
+                                      disruptions[index]['severity'] ?? "Gravité inconnue",
+                                      style: TextStyle(fontSize: 14, color: Colors.redAccent),
+                                    ),
+                                  ],
                                 ),
                                 actions: [
                                   TextButton(
