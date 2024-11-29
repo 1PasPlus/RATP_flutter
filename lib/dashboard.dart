@@ -168,6 +168,7 @@ class _DashboardState extends State<Dashboard> {
                   ),
                   SizedBox(width: 8.0), // Spacing
                   // Two smaller tiles stacked vertically on the right
+
                   Expanded(
                     flex: 1,
                     child: Column(
