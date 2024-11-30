@@ -8,68 +8,55 @@ class DisruptionsBarChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    List<charts.Series<DisruptionData, String>> series = [
-      charts.Series(
-        id: 'Perturbations',
-        data: disruptionsPerDay.entries
-            .map((entry) => DisruptionData(entry.key, entry.value))
-            .toList(),
-        domainFn: (DisruptionData data, _) => data.day,
-        measureFn: (DisruptionData data, _) => data.count,
-        colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
+    // Préparation des données pour le graphique
+    final List<charts.Series<BarData, String>> seriesList = [
+      charts.Series<BarData, String>(
+        id: 'Disruptions',
+        domainFn: (BarData data, _) => data.label,
+        measureFn: (BarData data, _) => data.value,
+        colorFn: (BarData data, _) => data.color,
+        data: disruptionsPerDay.entries.map((entry) {
+          return BarData(
+            label: entry.key,
+            value: entry.value,
+            color: charts.ColorUtil.fromDartColor(Colors.blue),
+          );
+        }).toList(),
       ),
     ];
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.orange.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8.0),
-        border: Border.all(color: Colors.orange),
+    return charts.BarChart(
+      seriesList,
+      animate: true,
+      behaviors: [
+        charts.SelectNearest(), // Active la sélection de l'élément le plus proche
+        charts.DomainHighlighter(), // Met en surbrillance la barre sélectionnée
+      ],
+      defaultRenderer: charts.BarRendererConfig<String>(
+        // Configure les tooltips
+        barRendererDecorator: charts.BarLabelDecorator<String>(), // Affiche des labels sur les barres
+        cornerStrategy: const charts.ConstCornerStrategy(4), // Arrondit les coins des barres
       ),
-      child: Padding(
-        padding: EdgeInsets.all(8.0),
-        child: Column(
-          children: [
-            Text(
-              'Perturbations sur la semaine',
-              style: TextStyle(fontSize: 18.0, color: Colors.orange, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: 16.0),
-            Expanded(
-              child: charts.BarChart(
-                series,
-                animate: true,
-                vertical: true,
-                domainAxis: charts.OrdinalAxisSpec(
-                  renderSpec: charts.SmallTickRendererSpec(
-                    labelRotation: 60,
-                    labelStyle: charts.TextStyleSpec(
-                      fontSize: 12,
-                      color: charts.MaterialPalette.black,
-                    ),
-                  ),
-                ),
-                primaryMeasureAxis: charts.NumericAxisSpec(
-                  renderSpec: charts.GridlineRendererSpec(
-                    labelStyle: charts.TextStyleSpec(
-                      fontSize: 12,
-                      color: charts.MaterialPalette.black,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
+      selectionModels: [
+        charts.SelectionModelConfig(
+          type: charts.SelectionModelType.info, // Active le mode info pour les tooltips
+          changedListener: (charts.SelectionModel<String> model) {
+            if (model.hasDatumSelection) {
+              // Récupération des données sélectionnées
+              final selectedDatum = model.selectedDatum.first.datum as BarData;
+              print('Selected: ${selectedDatum.label}, Value: ${selectedDatum.value}');
+            }
+          },
         ),
-      ),
+      ],
     );
   }
 }
 
-class DisruptionData {
-  final String day;
-  final int count;
+class BarData {
+  final String label;
+  final int value;
+  final charts.Color color;
 
-  DisruptionData(this.day, this.count);
+  BarData({required this.label, required this.value, required this.color});
 }
