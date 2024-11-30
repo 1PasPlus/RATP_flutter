@@ -56,7 +56,8 @@ class _DisruptedLinesTileState extends State<DisruptedLinesTile> {
                 children: [
                   ListTile(
                     title: Text(
-                      'Ligne ${line.shortNameLine ?? 'N/A'}: ${line.nameLine ?? 'Nom indisponible'}',
+                      'Ligne : ${line.nameLine ?? 'Nom indisponible'}',
+                      //'Ligne ${line.shortNameLine ?? 'N/A'}: ${line.nameLine ?? 'Nom indisponible'}',
                       style: TextStyle(color: Colors.black),
                     ),
                     trailing: Icon(isExpanded ? Icons.expand_less : Icons.expand_more),
