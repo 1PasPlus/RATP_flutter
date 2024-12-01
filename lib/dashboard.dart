@@ -1,14 +1,10 @@
 import 'dart:convert';
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'dashboard_tile.dart';
 import 'disrupted_lines_tile.dart';
 import 'transport_disruption_pie_chart.dart';
-import 'disruptions_bar_chart.dart';
 import 'map_screen.dart';
 import 'disruptions_line_chart.dart';
 import 'models/line.dart';
@@ -31,6 +27,8 @@ class _DashboardState extends State<Dashboard> {
   final List<String> transportModes = ['bus', 'metro', 'rer'];
   final String apiKey = 'X81LtZyjIEWcHJEy26UvZgSrSmSOEdm4';
 
+  bool isLoadingData = true; // Indicateur de chargement des données
+
   @override
   void initState() {
     super.initState();
@@ -45,11 +43,13 @@ class _DashboardState extends State<Dashboard> {
       final linesJson = json.decode(linesData) as List;
       lines = linesJson.map((json) => Line.fromJson(json)).toList();
       linesMap = {for (var line in lines) if (line.idLine != null) line.idLine!: line};
+      print('Lines loaded: ${lines.length}');
 
       // Load disruptions data
       String disruptionsData = await rootBundle.loadString('assets/disruptions.json');
       final disruptionsJson = json.decode(disruptionsData) as List;
       disruptions = disruptionsJson.map((json) => Disruption.fromJson(json)).toList();
+      print('Disruptions loaded: ${disruptions.length}');
 
       // Find disrupted lines
       disruptedLines = disruptions
@@ -59,6 +59,7 @@ class _DashboardState extends State<Dashboard> {
           .where((id) => id != null && linesMap.containsKey(id))
           .map((id) => linesMap[id]!)
           .toList();
+      print('Disrupted lines count: ${disruptedLines.length}');
 
       // Calculate transport disruption counts
       transportDisruptionCounts = {'bus': 0, 'metro': 0, 'rer': 0};
@@ -77,18 +78,23 @@ class _DashboardState extends State<Dashboard> {
 
       // Static example for disruptions per day
       disruptionsPerDay = {
-        'Lundi': 5,
-        'Mardi': 8,
-        'Mercredi': 2,
-        'Jeudi': 7,
-        'Vendredi': 10,
-        'Samedi': 4,
-        'Dimanche': 1,
+        'Lun': 5,
+        'Mar': 8,
+        'Mer': 2,
+        'Jeu': 7,
+        'Ven': 10,
+        'Sam': 4,
+        'Dim': 1,
       };
 
-      setState(() {}); // Trigger UI update
+      setState(() {
+        isLoadingData = false; // Données chargées
+      });
     } catch (e) {
       print("Error loading data: $e");
+      setState(() {
+        isLoadingData = false; // Données chargées même en cas d'erreur
+      });
     }
   }
 
@@ -105,9 +111,13 @@ class _DashboardState extends State<Dashboard> {
           'apikey': apiKey,
         }).timeout(const Duration(seconds: 10));
 
+        print('Response status code: ${response.statusCode}');
+
         if (response.statusCode == 200) {
           final data = json.decode(response.body);
           final allDisruptions = data['disruptions'] as List;
+
+          print('Disruptions fetched: ${allDisruptions.length}');
 
           for (var disruption in allDisruptions) {
             for (var impactedObject in disruption['impacted_objects'] ?? []) {
@@ -128,67 +138,96 @@ class _DashboardState extends State<Dashboard> {
               }
             }
           }
+        } else {
+          print('Failed to load disruptions for page $page');
         }
       }
       setState(() {
         stopAreaDisruptions = tempDisruptions;
+        print('Total stop area disruptions: ${stopAreaDisruptions.length}');
       });
     } catch (e) {
       print("Error fetching stop area disruptions: $e");
+      setState(() {
+        stopAreaDisruptions = []; // Réinitialiser la liste en cas d'erreur
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (isLoadingData) {
+      return Scaffold(
+        backgroundColor: Colors.grey[100],
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return Scaffold(
-      backgroundColor: Color(0xFFECFBF4), // Vert RATP pour le fond du dashboard
+      backgroundColor: Colors.grey[100],
+      appBar: AppBar(
+        title: Text('Tableau de Bord des Perturbations'),
+        backgroundColor: Colors.indigo,
+        elevation: 0,
+      ),
       body: Padding(
-        padding: const EdgeInsets.all(8.0),
+        padding: const EdgeInsets.all(12.0),
         child: Column(
           children: [
-            // First row: Wide tile on the left, two smaller tiles on the right
+            // First row
             Expanded(
               flex: 5,
               child: Row(
                 children: [
-                  // Wide tile on the left
+                  // Left tile
                   Expanded(
                     flex: 2,
                     child: DashboardTile(
-                      //title: disruptedLines.isEmpty ? 'Aucune perturbation' : 'Lignes perturbées',
-                      //icon: disruptedLines.isEmpty ? Icons.check_circle : Icons.warning,
-                      color: Colors.red.shade100,
+                      color: Colors.white,
                       child: disruptedLines.isEmpty
-                          ? SizedBox()
+                          ? Center(
+                        child: Text(
+                          'Aucune perturbation',
+                          style: TextStyle(
+                            fontSize: 18.0,
+                            color: Colors.black87,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      )
                           : DisruptedLinesTile(
                         disruptedLines: disruptedLines,
                         disruptions: disruptions,
                       ),
                     ),
                   ),
-                  SizedBox(width: 8.0), // Spacing
-                  // Two smaller tiles stacked vertically on the right
-
+                  SizedBox(width: 12.0),
+                  // Right tiles
                   Expanded(
                     flex: 1,
                     child: Column(
                       children: [
                         Expanded(
                           child: DashboardTile(
-                            //title: 'Répartition des perturbations',
-                            //icon: Icons.pie_chart,
-                            color: Colors.green.shade100,
-                            child: TransportDisruptionPieChart(),
+                            color: Colors.white,
+                            child: TransportDisruptionPieChart(
+                              dataMap: transportDisruptionPercentages,
+                            ),
                           ),
                         ),
-                        SizedBox(height: 8.0), // Spacing
+                        SizedBox(height: 12.0),
                         Expanded(
                           child: DashboardTile(
-                            //title: 'Carte des perturbations',
-                            //icon: Icons.map,
-                            color: Colors.blueGrey.shade100,
+                            color: Colors.white,
                             child: stopAreaDisruptions.isEmpty
-                                ? SizedBox()
+                                ? Center(
+                              child: Text(
+                                'Chargement de la carte...',
+                                style: TextStyle(color: Colors.black54),
+                              ),
+                            )
                                 : MapScreen(disruptions: stopAreaDisruptions),
                           ),
                         ),
@@ -198,15 +237,13 @@ class _DashboardState extends State<Dashboard> {
                 ],
               ),
             ),
-            SizedBox(height: 8.0), // Spacing between rows
-            // Second row: Full-width chart
+            SizedBox(height: 12.0),
+            // Second row
             Expanded(
               flex: 2,
               child: DashboardTile(
-                //title: 'Perturbations par jour',
-                //icon: Icons.show_chart,
-                color: Colors.blue.shade100,
-                child: DisruptionsLineChart.sampleData(),
+                color: Colors.white,
+                child: DisruptionsLineChart.sampleData(disruptionsPerDay),
               ),
             ),
           ],

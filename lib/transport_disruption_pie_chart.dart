@@ -2,12 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
 
 class TransportDisruptionPieChart extends StatelessWidget {
-  // Données codées en dur pour le graphique
-  final Map<String, double> dataMap = {
-    'Bus': 38.0,
-    'Metro': 22.0,
-    'Rer': 40.0,
-  };
+  final Map<String, double> dataMap;
+
+  TransportDisruptionPieChart({required this.dataMap});
 
   @override
   Widget build(BuildContext context) {
@@ -21,84 +18,51 @@ class TransportDisruptionPieChart extends StatelessWidget {
           final color = _getColorForLabel(entry.key);
           return ChartData(entry.key, entry.value, charts.ColorUtil.fromDartColor(color));
         }).toList(),
+        labelAccessorFn: (ChartData row, _) => '${row.value.toStringAsFixed(1)}%',
       ),
     ];
 
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.start,
-      children: [
-        // Titre de la tuile
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12.0),
-          child: Text(
-            'Répartition des pannes par transport',
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: [
+          Text(
+            'Répartition des perturbations',
             style: TextStyle(
-              fontSize: 20.0, // Même taille que le titre de gauche
-              color: Colors.green.shade200, // Couleur de la tuile
-              fontWeight: FontWeight.bold, // Même style
+              fontSize: 18.0,
+              color: Colors.black87,
+              fontWeight: FontWeight.bold,
             ),
-            textAlign: TextAlign.center,
           ),
-        ),
-        // Contenu : graphique et légende
-        Expanded(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Graphique circulaire à gauche
-              Expanded(
-                flex: 3, // Plus grand espace pour le graphique
-                child: charts.PieChart<String>(
-                  seriesList,
-                  animate: true,
-                  defaultRenderer: charts.ArcRendererConfig(
-                    arcWidth: 25, // Largeur du camembert
-                    arcRendererDecorators: [],
+          Expanded(
+            child: charts.PieChart<String>(
+              seriesList,
+              animate: true,
+              defaultRenderer: charts.ArcRendererConfig(
+                arcWidth: 60,
+                arcRendererDecorators: [
+                  charts.ArcLabelDecorator(
+                    labelPosition: charts.ArcLabelPosition.inside,
+                  ),
+                ],
+              ),
+              behaviors: [
+                charts.DatumLegend(
+                  position: charts.BehaviorPosition.bottom,
+                  outsideJustification: charts.OutsideJustification.middleDrawArea,
+                  horizontalFirst: false,
+                  desiredMaxRows: 1,
+                  cellPadding: EdgeInsets.only(right: 8.0, bottom: 4.0),
+                  entryTextStyle: charts.TextStyleSpec(
+                    color: charts.MaterialPalette.black,
+                    fontSize: 12,
                   ),
                 ),
-              ),
-              // Légende à droite
-              Expanded(
-                flex: 2, // Moins d'espace pour la légende
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: dataMap.entries.map((entry) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4.0),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 12,
-                            height: 12,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: _getColorForLabel(entry.key),
-                            ),
-                          ),
-                          SizedBox(width: 8),
-                          Text(
-                            '${entry.value.toStringAsFixed(0)}%',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                          SizedBox(width: 4),
-                          Text(
-                            entry.key,
-                            style: TextStyle(fontSize: 12),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -106,11 +70,11 @@ class TransportDisruptionPieChart extends StatelessWidget {
   Color _getColorForLabel(String label) {
     switch (label.toLowerCase()) {
       case 'bus':
-        return Colors.blue;
+        return Colors.teal;
       case 'metro':
         return Colors.orange;
       case 'rer':
-        return Colors.green;
+        return Colors.purple;
       default:
         return Colors.grey;
     }

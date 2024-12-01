@@ -6,15 +6,21 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
+  final MaterialColor primaryColor = Colors.indigo;
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-        title: 'Tableau de Bord',
-        debugShowCheckedModeBanner: false, // Désactive la bannière "Debug"
-
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
+      title: 'Tableau de Bord',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primarySwatch: primaryColor,
+        colorScheme: ColorScheme.fromSwatch(primarySwatch: primaryColor).copyWith(
+          secondary: Colors.tealAccent,
         ),
-        home: Dashboard());
+        fontFamily: 'Roboto',
+      ),
+      home: Dashboard(),
+    );
   }
 }

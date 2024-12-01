@@ -2,28 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
 
 class DisruptionsLineChart extends StatelessWidget {
-  final List<charts.Series<DisruptionData, String>> seriesList; // Explicit type
+  final List<charts.Series<DisruptionData, String>> seriesList;
   final bool animate;
 
   DisruptionsLineChart(this.seriesList, {this.animate = true});
 
-  factory DisruptionsLineChart.sampleData() {
+  factory DisruptionsLineChart.sampleData(Map<String, int> disruptionsPerDay) {
+    final data = disruptionsPerDay.entries.map((entry) {
+      return DisruptionData(entry.key, entry.value);
+    }).toList();
+
     return DisruptionsLineChart(
       [
         charts.Series<DisruptionData, String>(
           id: 'Perturbations',
-          colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
+          colorFn: (_, __) => charts.MaterialPalette.indigo.shadeDefault,
           domainFn: (DisruptionData disruptions, _) => disruptions.day,
           measureFn: (DisruptionData disruptions, _) => disruptions.count,
-          data: [
-            DisruptionData('Lundi', 5),
-            DisruptionData('Mardi', 8),
-            DisruptionData('Mercredi', 2),
-            DisruptionData('Jeudi', 7),
-            DisruptionData('Vendredi', 10),
-            DisruptionData('Samedi', 4),
-            DisruptionData('Dimanche', 1),
-          ],
+          data: data,
         ),
       ],
       animate: true,
@@ -32,19 +28,49 @@ class DisruptionsLineChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(8.0),
-      child: charts.BarChart( // Use BarChart instead if LineChart still causes issues
-        seriesList,
-        animate: animate,
+    return charts.OrdinalComboChart(
+      seriesList,
+      animate: animate,
+      defaultRenderer: charts.LineRendererConfig(),
+      behaviors: [
+        charts.ChartTitle('Perturbations par jour',
+            behaviorPosition: charts.BehaviorPosition.top,
+            titleStyleSpec: charts.TextStyleSpec(
+              fontSize: 16,
+              color: charts.MaterialPalette.black,
+            ),
+            titleOutsideJustification: charts.OutsideJustification.middleDrawArea),
+        charts.PanAndZoomBehavior(),
+      ],
+      domainAxis: charts.OrdinalAxisSpec(
+        renderSpec: charts.SmallTickRendererSpec(
+          labelStyle: charts.TextStyleSpec(
+            fontSize: 12,
+            color: charts.MaterialPalette.black,
+          ),
+        ),
+      ),
+      primaryMeasureAxis: charts.NumericAxisSpec(
+        tickProviderSpec:
+        charts.BasicNumericTickProviderSpec(desiredTickCount: 5),
+        renderSpec: charts.GridlineRendererSpec(
+          labelStyle: charts.TextStyleSpec(
+            fontSize: 12,
+            color: charts.MaterialPalette.black,
+          ),
+          lineStyle: charts.LineStyleSpec(
+            dashPattern: [4, 4],
+            color: charts.MaterialPalette.gray.shade300,
+          ),
+        ),
       ),
     );
   }
 }
 
 class DisruptionData {
-  final String day; // String type for the x-axis
-  final int count; // Integer type for the y-axis
+  final String day;
+  final int count;
 
   DisruptionData(this.day, this.count);
 }
