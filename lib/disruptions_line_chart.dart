@@ -36,7 +36,7 @@ class DisruptionsLineChart extends StatelessWidget {
         charts.ChartTitle('Perturbations par jour',
             behaviorPosition: charts.BehaviorPosition.top,
             titleStyleSpec: charts.TextStyleSpec(
-              fontSize: 16,
+              fontSize: 18,
               color: charts.MaterialPalette.black,
             ),
             titleOutsideJustification: charts.OutsideJustification.middleDrawArea),
