@@ -2,6 +2,8 @@
 
 Ce projet est une application Flutter interactive et moderne permettant de suivre les perturbations des transports en commun de la RATP en temps réel. Le dashboard offre une vue d’ensemble des lignes de métro, RER, bus, tramway et autres services, avec des informations claires et actualisées pour aider les utilisateurs à planifier leurs déplacements.
 
+![image](https://github.com/user-attachments/assets/aaf204c6-9906-4b45-933c-b96908da286a)
+
 ## Fonctionnalités
 
 - **Affichage en temps réel :** Recevez les dernières informations sur les perturbations en cours.
