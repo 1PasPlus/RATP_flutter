@@ -6,9 +6,12 @@ Ce projet est une application Flutter interactive et moderne permettant de suivr
 
 ## Fonctionnalités
 
-- **Affichage en temps réel :** Recevez les dernières informations sur les perturbations en cours.
+- **Affichage en temps réel :** Recevez les dernières informations sur les perturbations en cours grâce à l'API RATP "PRIM"
 - **affichage des messages de perturbations :** sous forme de tableau déroulant.
 - **Interface adaptative :** Compatible avec les appareils mobiles, tablettes et desktops.
+- **Affichage des perturbations en fonction de leur nature:** Les perturbations fixes (avec coordonnées GPS sont affichées sur la carte tandis que les perturbations touchant les lignes de transport sont situées dans les listes déroulantes.
+- **Suivi du nombre de perturbations sur les 7 derniers jours**
+- **Suivi de la répartition des pannes par type de transport**
 
 ## Prérequis
 
