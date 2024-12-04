@@ -78,13 +78,13 @@ class _DashboardState extends State<Dashboard> {
 
       // Static example for disruptions per day
       disruptionsPerDay = {
-        'Lun': 5,
-        'Mar': 8,
-        'Mer': 2,
-        'Jeu': 7,
-        'Ven': 10,
-        'Sam': 4,
-        'Dim': 1,
+        'Jeu': 4,
+        'Ven': 6,
+        'Sam': 10,
+        'Dim': 5,
+        'Lun': 7,
+        'Mar': 3,
+        'Mer': 7
       };
 
       setState(() {
@@ -213,7 +213,7 @@ class _DashboardState extends State<Dashboard> {
                           child: DashboardTile(
                             color: Colors.white,
                             child: TransportDisruptionPieChart(
-                              dataMap: transportDisruptionPercentages,
+                              //dataMap: transportDisruptionPercentages,
                             ),
                           ),
                         ),

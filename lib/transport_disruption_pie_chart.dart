@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
 
 class TransportDisruptionPieChart extends StatelessWidget {
-  final Map<String, double> dataMap;
-
-  TransportDisruptionPieChart({required this.dataMap});
+  // Données fixes pour le graphique
+  final Map<String, double> dataMap = {
+    'Bus': 80.0,
+    'Métro': 10.0,
+    'RER': 10.0,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +19,11 @@ class TransportDisruptionPieChart extends StatelessWidget {
         colorFn: (ChartData data, _) => data.color,
         data: dataMap.entries.map((entry) {
           final color = _getColorForLabel(entry.key);
-          return ChartData(entry.key, entry.value, charts.ColorUtil.fromDartColor(color));
+          return ChartData(
+            entry.key,
+            entry.value,
+            charts.ColorUtil.fromDartColor(color),
+          );
         }).toList(),
         labelAccessorFn: (ChartData row, _) => '${row.value.toStringAsFixed(1)}%',
       ),
@@ -43,13 +50,18 @@ class TransportDisruptionPieChart extends StatelessWidget {
                 arcRendererDecorators: [
                   charts.ArcLabelDecorator(
                     labelPosition: charts.ArcLabelPosition.inside,
+                    insideLabelStyleSpec: charts.TextStyleSpec(
+                      fontSize: 14,
+                      color: charts.MaterialPalette.white,
+                    ),
                   ),
                 ],
               ),
               behaviors: [
                 charts.DatumLegend(
                   position: charts.BehaviorPosition.bottom,
-                  outsideJustification: charts.OutsideJustification.middleDrawArea,
+                  outsideJustification:
+                  charts.OutsideJustification.middleDrawArea,
                   horizontalFirst: false,
                   desiredMaxRows: 1,
                   cellPadding: EdgeInsets.only(right: 8.0, bottom: 4.0),
@@ -71,7 +83,7 @@ class TransportDisruptionPieChart extends StatelessWidget {
     switch (label.toLowerCase()) {
       case 'bus':
         return Colors.teal;
-      case 'metro':
+      case 'métro':
         return Colors.orange;
       case 'rer':
         return Colors.purple;
